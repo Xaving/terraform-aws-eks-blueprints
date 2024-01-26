@@ -5,7 +5,16 @@ metadata:
   name: nginx-example
   labels:
     app: nginx
-
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: efs-sc
+provisioner: efs.csi.aws.com
+parameters:
+  provisioningMode: efs-ap
+  fileSystemId: fs-09d70741c95e128a8
+  directoryPerms: "700"
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -15,13 +24,12 @@ metadata:
   labels:
     app: nginx
 spec:
-  storageClassName: do-block-storage
+  storageClassName: efs-sc
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   resources:
     requests:
       storage: 5Gi
-
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -43,7 +51,7 @@ spec:
       volumes:
         - name: nginx-logs
           persistentVolumeClaim:
-           claimName: nginx-logs
+            claimName: nginx-logs
       containers:
       - image: nginx:stable
         name: nginx
@@ -52,8 +60,6 @@ spec:
         volumeMounts:
           - mountPath: "/var/log/nginx"
             name: nginx-logs
-            readOnly: false
-
 ---
 apiVersion: v1
 kind: Service
